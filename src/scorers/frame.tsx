@@ -2,6 +2,8 @@ import { Component, useEffect, useRef, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { load, matchKey, remove, save } from "../lib/storage";
 import { Confetti } from "../components/Confetti";
+import { Avatar } from "../components/Player";
+import { addHistory, notifyMatches, removeHistory } from "../lib/store";
 
 export type BodyProps<S> = {
   data: S;
@@ -10,7 +12,7 @@ export type BodyProps<S> = {
   slug: string;
 };
 
-export type Summary = { title: string; lines: string[] };
+export type Summary = { title: string; lines: string[]; winners?: string[] };
 
 export type ScorerDef<S> = {
   setup: { mode: "players" | "teams" | "none"; min?: number; max?: number; def?: number };
@@ -20,7 +22,7 @@ export type ScorerDef<S> = {
   summary: (d: S, names: string[]) => Summary;
 };
 
-type Match<S> = { names: string[]; data: S; hist: S[]; finished: boolean };
+type Match<S> = { names: string[]; data: S; hist: S[]; finished: boolean; at?: number; histId?: string };
 
 const HIST_MAX = 40;
 const NAMES_KEY = { players: "ludoteca:nombres", teams: "ludoteca:equipos" } as const;
@@ -47,6 +49,7 @@ export function ranking(names: string[], scores: number[], lowestWins = false, u
   return {
     title: winners.length > 1 ? `¡Empate entre ${joinNames(winners)}!` : `¡Ganó ${winners[0]}!`,
     lines: order.map((o, i) => `${i + 1}. ${o.n} — ${o.s}${unit}`),
+    winners,
   };
 }
 
@@ -120,7 +123,7 @@ export function Stepper({
       <button className="pm" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label={`Restar ${label}`}>
         −
       </button>
-      <span className="stepper-val">{value}</span>
+      <span className="stepper-val bump" key={value}>{value}</span>
       <button className="pm" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} aria-label={`Sumar ${label}`}>
         +
       </button>
@@ -222,6 +225,7 @@ function Setup({ mode, min, max, def, onStart }: { mode: "players" | "teams"; mi
       <div className="setup-list">
         {names.map((n, i) => (
           <div className="row" key={i}>
+            <Avatar name={n.trim() || fallback(i)} size={38} onCycle={() => setNames([...names])} />
             <input
               className="text"
               value={n}
@@ -293,6 +297,7 @@ export function ScorerFrame<S>({ slug, def }: { slug: string; def: ScorerDef<S> 
   useEffect(() => {
     if (match) save(key, match);
     else remove(key);
+    notifyMatches();
   }, [key, match]);
 
   const startNew = () => {
@@ -326,10 +331,22 @@ export function ScorerFrame<S>({ slug, def }: { slug: string; def: ScorerDef<S> 
       if (!m) return m;
       const data = typeof next === "function" ? (next as (d: S) => S)(m.data) : next;
       if (data === m.data) return m;
-      return { ...m, data, hist: [...m.hist, m.data].slice(-HIST_MAX) };
+      return { ...m, data, hist: [...m.hist, m.data].slice(-HIST_MAX), at: Date.now() };
     });
   const undo = () =>
     setMatch((m) => (m && m.hist.length ? { ...m, data: m.hist[m.hist.length - 1], hist: m.hist.slice(0, -1) } : m));
+
+  // Al terminar, la partida queda en el historial (y sale de ahí si volvés a abrirla).
+  const finish = () => {
+    const s = def.summary(match.data, match.names);
+    const id = `${slug}-${Date.now()}`;
+    addHistory({ id, slug, at: Date.now(), names: match.names, winners: s.winners, title: s.title, lines: s.lines });
+    setMatch({ ...match, finished: true, histId: id });
+  };
+  const reopen = () => {
+    if (match.histId) removeHistory(match.histId);
+    setMatch({ ...match, finished: false, histId: undefined });
+  };
 
   const lead = def.leader?.(match.data, match.names) ?? null;
   const result = match.finished ? def.summary(match.data, match.names) : null;
@@ -343,7 +360,7 @@ export function ScorerFrame<S>({ slug, def }: { slug: string; def: ScorerDef<S> 
         <button className="btn" onClick={() => setConfirmNew(true)}>
           Nueva
         </button>
-        <button className="btn primary" onClick={() => setMatch({ ...match, finished: true })}>
+        <button className="btn primary" onClick={finish}>
           Terminar
         </button>
       </div>
@@ -374,7 +391,7 @@ export function ScorerFrame<S>({ slug, def }: { slug: string; def: ScorerDef<S> 
             <button className="btn big primary block" onClick={startNew}>
               Nueva partida
             </button>
-            <button className="btn big block" onClick={() => setMatch({ ...match, finished: false })}>
+            <button className="btn big block" onClick={reopen}>
               Volver a la partida
             </button>
           </div>

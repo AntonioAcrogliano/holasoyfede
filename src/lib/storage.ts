@@ -43,3 +43,18 @@ export function remove(key: string): void {
 }
 
 export const matchKey = (slug: string) => `ludoteca:partida:${slug}`;
+
+/** Claves guardadas que empiezan con `prefix` (junta localStorage y la copia en memoria). */
+export function keysWithPrefix(prefix: string): string[] {
+  const out = new Set<string>();
+  for (const k of mem.keys()) if (k.startsWith(prefix)) out.add(k);
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(prefix)) out.add(k);
+    }
+  } catch {
+    /* solo memoria */
+  }
+  return [...out];
+}

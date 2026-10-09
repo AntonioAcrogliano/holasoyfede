@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import type { CSSProperties } from "react";
 import type { Game, Theme } from "../types";
 import { load, save } from "./storage";
@@ -6,21 +7,51 @@ import { load, save } from "./storage";
 // ───────── ruteo por hash: #/juego/avalon/anotador ─────────
 
 export type Route =
-  | { page: "home" }
+  | { page: "home"; search?: boolean }
   | { page: "tools" }
+  | { page: "matches" }
   | { page: "game"; slug: string; tab?: string };
 
 function parse(hash: string): Route {
   const parts = hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
   if (parts[0] === "juego" && parts[1]) return { page: "game", slug: parts[1], tab: parts[2] };
   if (parts[0] === "herramientas") return { page: "tools" };
-  return { page: "home" };
+  if (parts[0] === "partidas") return { page: "matches" };
+  return { page: "home", search: parts[0] === "buscar" };
 }
+
+export const pageKeyOf = (r: Route) => (r.page === "game" ? `game:${r.slug}` : r.page);
+
+type VTDocument = Document & { startViewTransition?: (cb: () => void) => unknown };
+const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+export const supportsVT = () => typeof (document as VTDocument).startViewTransition === "function" && !reducedMotion();
 
 export function useRoute(): Route {
   const [route, setRoute] = useState(() => parse(window.location.hash));
+  const current = useRef(route);
   useEffect(() => {
-    const on = () => setRoute(parse(window.location.hash));
+    const on = () => {
+      const next = parse(window.location.hash);
+      const pageChanged = pageKeyOf(next) !== pageKeyOf(current.current);
+      current.current = next;
+      const apply = () => {
+        flushSync(() => setRoute(next));
+        if (pageChanged) window.scrollTo(0, 0); // al cambiar de página (no de pestaña) volvemos arriba
+      };
+      // Entre páginas, el navegador anima el cambio: la tapa que tocaste crece hasta ser la cabecera de la ficha.
+      if (pageChanged && supportsVT()) {
+        try {
+          // si el navegador saltea la animación (pestaña oculta, otra en curso) el cambio se aplica igual
+          const t = (document as VTDocument).startViewTransition!(apply) as { ready?: Promise<unknown>; finished?: Promise<unknown> } | undefined;
+          t?.ready?.catch(() => {});
+          t?.finished?.catch(() => {});
+          return;
+        } catch {
+          /* sin transición */
+        }
+      }
+      apply();
+    };
     window.addEventListener("hashchange", on);
     return () => window.removeEventListener("hashchange", on);
   }, []);
@@ -100,6 +131,8 @@ export function heroStyle(t: Theme): CSSProperties {
   return {
     background: t.pattern ? `${t.pattern}, ${t.bg}` : t.bg,
     color: t.ink,
+    // la ilustración se pinta con el acento; si el acento es casi negro, con el color de la tapa
+    ["--art-a" as string]: luminance(t.accent) < 0.035 && luminance(t.bg) > 0.12 ? t.bg : t.accent,
     ...(t.accentFont ? { ["--accent-font" as string]: `"${t.accentFont}"`, ["--accent-scale" as string]: String(FONT_SCALE[t.accentFont] ?? 1) } : {}),
   };
 }

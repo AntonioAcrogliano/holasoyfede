@@ -175,7 +175,7 @@ export const games: Game[] = [
     { scorer: ROUNDS }),
   g("nessos", "Nessos", 3, 6, "Competitivo", ["cartas", "bluff"], "Fácil", 30,
     "Ofrecés cartas boca abajo; evitá quedarte con las malditas.",
-    t("#D9713F", "#1E1A18", "#1E1A18", pat.waves("#1E1A1833"), "🏺", "Cinzel"),
+    t("#D9713F", "#7A2A12", "#1E1A18", pat.waves("#1E1A1833"), "🏺", "Cinzel"),
     { scorer: ROUNDS }),
   g("munchkin", "Munchkin", 3, 6, "Competitivo", ["cartas", "humor"], "Fácil", 90,
     "Matá monstruos, juntá tesoros y arruinale la partida a los demás.",

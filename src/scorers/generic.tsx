@@ -1,4 +1,5 @@
 import { NumInput, leaderOf, ranking, sum } from "./frame";
+import { Avatar, PlayerName } from "../components/Player";
 import type { BodyProps, ScorerDef } from "./frame";
 
 // ───────── counter: un total por jugador ─────────
@@ -34,7 +35,7 @@ export function counterDef(o: CounterOpts = {}): ScorerDef<CounterState> {
             return (
               <div className={`card player ${!allSame && s === best ? "is-lead" : ""}`} key={i}>
                 <div className="player-head">
-                  <span className="player-name">{n}</span>
+                  <span className="player-name"><PlayerName name={n} /></span>
                   <NumInput className="score-big" value={s} label={`Puntos de ${n}`} onCommit={(v) => set(i, v ?? 0)} />
                 </div>
                 {reached && <p className="badge ok">¡Llegó a {o.target}!</p>}
@@ -106,7 +107,12 @@ export function roundsDef(o: RoundsOpts = {}): ScorerDef<RoundsState> {
               <tr>
                 <th scope="col">{label}</th>
                 {names.map((n, i) => (
-                  <th scope="col" key={i}>{n}</th>
+                  <th scope="col" key={i}>
+                    <span className="th-player">
+                      <Avatar name={n} size={22} />
+                      {n}
+                    </span>
+                  </th>
                 ))}
               </tr>
             </thead>

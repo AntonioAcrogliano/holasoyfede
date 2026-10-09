@@ -2,6 +2,7 @@ import { useState } from "react";
 import { NumInput, SandTimer, Stepper, leaderOf, ranking, sum } from "./frame";
 import type { BodyProps, ScorerDef } from "./frame";
 import { counterDef } from "./generic";
+import { Avatar, PlayerName } from "../components/Player";
 
 const setAt = <T,>(xs: T[], i: number, v: T) => xs.map((x, j) => (j === i ? v : x));
 
@@ -10,6 +11,7 @@ function PlayerTabs({ names, active, onPick, extra }: { names: string[]; active:
     <div className="pills" role="tablist" aria-label="Jugador">
       {names.map((n, i) => (
         <button key={i} role="tab" aria-selected={i === active} className={`pill ${i === active ? "on" : ""}`} onClick={() => onPick(i)}>
+          <Avatar name={n} size={22} />
           {n}
           {extra && <b>{extra(i)}</b>}
         </button>
@@ -82,9 +84,9 @@ function TrucoBody({ data, names, update }: BodyProps<Truco>) {
           const boxes = Array.from({ length: to / 5 }, (_, b) => Math.max(0, Math.min(5, pts[t] - b * 5)));
           return (
             <div className="card truco-col" key={t}>
-              <h3>{names[t]}</h3>
+              <h3><PlayerName name={names[t]} size={26} /></h3>
               <div className="truco-score" aria-label={`${names[t]}: ${pts[t]} puntos`}>
-                {pts[t]}
+                <span className="bump" key={pts[t]}>{pts[t]}</span>
                 {to === 30 && <small>{pts[t] >= 15 ? "buenas" : "malas"}</small>}
               </div>
               <div className="truco-boxes">
@@ -264,7 +266,7 @@ function CatanBody({ data, names, update }: BodyProps<Catan>) {
         return (
           <div className={`card player ${total >= 10 ? "is-lead" : ""}`} key={i}>
             <div className="player-head">
-              <span className="player-name">{n}</span>
+              <span className="player-name"><PlayerName name={n} /></span>
               <span className="score-big" aria-label={`${total} puntos`}>
                 {total}
                 <small>/10</small>
@@ -390,7 +392,7 @@ function SushiBody({ data, names, update }: BodyProps<Sushi>) {
         {names.map((n, i) => (
           <div className="card player" key={i}>
             <div className="player-head">
-              <span className="player-name">{n}</span>
+              <span className="player-name"><PlayerName name={n} /></span>
               <span className="score-big">{tot[i]}</span>
             </div>
             <div className="quad three">
@@ -511,7 +513,7 @@ function MunchBody({ data, names, update }: BodyProps<Munch>) {
         return (
           <div className={`card player ${lvl >= 10 ? "is-lead" : ""}`} key={i}>
             <div className="player-head">
-              <span className="player-name">{n}</span>
+              <span className="player-name"><PlayerName name={n} /></span>
               <span className="score-big" aria-label={`Fuerza ${lvl + gear}`}>
                 {lvl + gear}
                 <small>fuerza</small>

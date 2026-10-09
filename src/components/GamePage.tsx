@@ -4,6 +4,8 @@ import type { CheatSheet, Game, HowToPlay } from "../types";
 import { bySlug } from "../data/games";
 import { difficultyClass, heroStyle, playersLabel, tintVars } from "../lib/ui";
 import { Scorer } from "../scorers";
+import { useFavs } from "../lib/store";
+import { Art } from "./Art";
 import { Icon } from "./Icon";
 import type { IconName } from "./Icon";
 
@@ -57,7 +59,7 @@ function Cheat({ c, game }: { c: CheatSheet; game: Game }) {
   return (
     <div className={full ? "cheat cheat-full" : "cheat"}>
       <div className="between cheat-top">
-        {full && <strong className="cheat-title">{game.theme.icon} {game.name}</strong>}
+        {full && <strong className="cheat-title">{game.name}</strong>}
         <button className="btn" onClick={() => setFull(!full)}>
           <Icon name={full ? "x" : "expand"} />
           {full ? "Cerrar" : "Pantalla completa"}
@@ -98,6 +100,7 @@ const TAB_ICONS: Record<string, IconName> = { como: "book", cheat: "bolt", anota
 
 export function GamePage({ slug, tab, dark }: { slug: string; tab?: string; dark: boolean }) {
   const game = bySlug(slug);
+  const [favs, toggleFav] = useFavs();
 
   // El tema del juego tiñe toda la página (acento y fondo) mientras estés en su ficha.
   useEffect(() => {
@@ -116,7 +119,7 @@ export function GamePage({ slug, tab, dark }: { slug: string; tab?: string; dark
     return (
       <main className="page">
         <div className="card empty">
-          <p className="big-emoji" aria-hidden="true">🫙</p>
+          <Art glyph="box" className="empty-art" />
           <h3>Ese juego no está en el estante</h3>
           <a className="btn primary" href="#/">Volver al catálogo</a>
         </div>
@@ -138,13 +141,25 @@ export function GamePage({ slug, tab, dark }: { slug: string; tab?: string; dark
   return (
     <main className="page game">
       <header className={`ghero ${compact ? "ghero-compact" : ""}`} style={heroStyle(game.theme)}>
-        <span className="cover-ghost" aria-hidden="true">{game.theme.icon}</span>
-        <a className="ghero-back" href="#/" aria-label="Volver al estante">
-          <Icon name="back" size={20} />
-          <span>Estante</span>
-        </a>
+        <Art slug={game.slug} className="cover-ghost" />
+        <div className="ghero-top">
+          <a className="ghero-back" href="#/" aria-label="Volver al estante">
+            <Icon name="back" size={20} />
+            <span>Estante</span>
+          </a>
+          <button
+            className={`ghero-fav ${favs.includes(game.slug) ? "on" : ""}`}
+            aria-pressed={favs.includes(game.slug)}
+            aria-label={favs.includes(game.slug) ? "Sacar de favoritos" : "Agregar a favoritos"}
+            onClick={() => toggleFav(game.slug)}
+          >
+            <Icon name="heart" size={20} />
+          </button>
+        </div>
         <div className="ghero-main">
-          <span className="cover-token" aria-hidden="true">{game.theme.icon}</span>
+          <span className="cover-token">
+            <Art slug={game.slug} />
+          </span>
           <div className="ghero-text">
             {game.status === "falta-info" ? <span className="cover-sticker">Falta info</span> : game.type && <span className="cover-over">{game.type}</span>}
             <h1>{game.name}</h1>
@@ -171,7 +186,7 @@ export function GamePage({ slug, tab, dark }: { slug: string; tab?: string; dark
 
       {game.status === "falta-info" && (
         <div className="card empty">
-          <p className="big-emoji" aria-hidden="true">🤷</p>
+          <Art glyph="question" className="empty-art" />
           <h3>Todavía no cargamos cómo se juega</h3>
           <p>¿Sabés cómo se juega? Avisale a Fede.</p>
         </div>

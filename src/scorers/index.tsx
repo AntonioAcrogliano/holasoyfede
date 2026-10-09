@@ -85,6 +85,16 @@ function defFor(game: Game): AnyDef | null {
 
 const cache = new Map<string, AnyDef | null>();
 
+/** Quién va ganando en una partida guardada (para mostrarla fuera del anotador). */
+export function leaderFor(game: Game, data: unknown, names: string[]): string | null {
+  try {
+    if (!cache.has(game.slug)) cache.set(game.slug, defFor(game));
+    return cache.get(game.slug)?.leader?.(data, names) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function Scorer({ game }: { game: Game }) {
   // el def se crea una sola vez por juego: si cambiara en cada render, el anotador se remontaría
   if (!cache.has(game.slug)) cache.set(game.slug, defFor(game));
